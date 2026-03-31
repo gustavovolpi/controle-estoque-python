@@ -6,11 +6,11 @@ from datetime import datetime, date, timedelta
 import time
 import io
 
-# ==========================================================
+# ==========================================
 # 1. CONFIGURAÇÕES INICIAIS E BANCO DE DADOS
 # ==========================================
 DB = "estoque.db"
-LISTA_SETORES = ["ALMOXARIFADO", "DIRETORIA", "LIMPEZA", "PRODUCAO", "FABRICACAO", "MANUTENCAO", "ADMINISTRATIVO", "P&D", "QUALIDADE", "LOGISTICA", "ARMAZEM"]
+LISTA_SETORES = ["ALMOXARIFADO", "DIRETORIA", "LIMPEZA", "PRODUCAO", "FABRICACAO", "MANUTENCAO", "ADMINISTRATIVO", "P&D", "QUALIDADE", "LOGISTICA", "ARMAZEM", "T.I", "PORTARIA", "COMERCIAL", "NOVOS NEGOCIOS", "RH"]
 
 if "logado" not in st.session_state: st.session_state.logado = False
 if "form_reset_key" not in st.session_state: st.session_state.form_reset_key = 0
@@ -33,13 +33,11 @@ def normalizar(txt):
 def is_admin():
     return st.session_state.get("usuario") == "admin"
 
-# Garantir que a coluna 'ativo' exista (Migração automática)
 try:
     q("ALTER TABLE produtos ADD COLUMN ativo INTEGER DEFAULT 1")
 except:
     pass
 
-# --- MIGRACAO DATA/HORA SAIDA ---
 try:
     q("ALTER TABLE saídas ADD COLUMN data_hora_saida DATETIME")
 except:
@@ -50,9 +48,9 @@ try:
 except:
     pass
 
-# ==========================================================
+# =========================================
 # 2. LOGIN E SEGURANÇA
-# ==========================================================
+# =========================================
 st.set_page_config(layout="wide", page_title="Sistema de Estoque", page_icon="📦")
 
 if not st.session_state.logado:
@@ -75,16 +73,16 @@ if st.sidebar.button("Sair", key="logout_btn"):
 
 aba_principal = st.sidebar.radio("Menu", ["📦 Estoque", "📜 Auditoria"])
 
-# ==========================================================
+# ========================================
 # 3. ABA ESTOQUE
-# ==========================================================
+# ========================================
 if aba_principal == "📦 Estoque":
     st.title("📦 Controle de Estoque")
 
-        # Consulta alterada para Soft Delete
+        
     prods = [p[0] for p in q("SELECT nome FROM produtos WHERE ativo = 1 ORDER BY nome", fetch=True)]
 
-    # --- SEÇÃO DE ENTRADA ---
+    # --- SEÇÃO DE ENTRADA
     with st.expander("➕ Entrada de Estoque", expanded=False):
         n_sel = st.selectbox("Produto", options=prods, index=None, key=f"ent_n_{st.session_state.form_reset_key}")
         n_ent = st.text_input("Novo Produto", key=f"ent_m_{st.session_state.form_reset_key}").upper() if n_sel is None else n_sel
@@ -102,14 +100,14 @@ if aba_principal == "📦 Estoque":
 
         if st.button("Confirmar Entrada", key=f"btn_confirm_ent_{st.session_state.form_reset_key}"):
             n_norm = normalizar(n_ent)
-            # Se o produto existia mas estava inativo, reativamos ele
+            
             q("INSERT INTO produtos (nome, ativo) VALUES (?, 1) ON CONFLICT(nome) DO UPDATE SET ativo = 1", (n_norm,))
             q("INSERT INTO estoque_setores (produto, setor, quantidade) VALUES (?, 'ALMOXARIFADO', ?) ON CONFLICT(produto, setor) DO UPDATE SET quantidade = quantidade + ?", (n_norm, q_ent, q_ent))
             p_id = q("SELECT id FROM produtos WHERE nome=?", (n_norm,), True)[0][0]
             q("INSERT INTO entradas_unidade (produto_id, quantidade, usuario, tipo_movimentacao) VALUES (?, ?, ?, ?)", (p_id, q_ent, st.session_state.usuario, ""))
             st.success("Entrada realizada!"); st.session_state.form_reset_key += 1; time.sleep(1); st.rerun()
 
-    # --- SEÇÃO DE SAÍDA ---
+    # --- SEÇÃO DE SAÍDA
     with st.expander("➖ Saída / Retirada", expanded=False):
         item_s = st.selectbox("Item", options=prods, index=None, key=f"sai_n_{st.session_state.form_reset_key}")
         c_set, c_resp = st.columns(2)
@@ -123,13 +121,13 @@ if aba_principal == "📦 Estoque":
         responsavel = c_resp.text_input("Nome", key=f"sai_re_new_{st.session_state.form_reset_key}").upper() if resp_sel == "+ DIGITAR NOVO..." else resp_sel
         qtd_s = st.number_input("Qtd Saída", min_value=1, key=f"sai_q_{st.session_state.form_reset_key}")
 
-        # Novos campos de Data e Hora para Saída
+        
         st.markdown("---")
         c_dt, c_hr = st.columns(2)
         data_s = c_dt.date_input("Data da Saída Real", value=datetime.now(), key=f"sai_dt_{st.session_state.form_reset_key}")
         hora_s = c_hr.time_input("Hora da Saída Real", value=datetime.now(), key=f"sai_hr_{st.session_state.form_reset_key}")
         
-        # Combinação dos campos em um único datetime para o banco
+        
         dt_saida_combinada = datetime.combine(data_s, hora_s).strftime('%Y-%m-%d %H:%M:%S')
 
         if st.button("Confirmar Saída", key=f"btn_confirm_sai_{st.session_state.form_reset_key}"):
@@ -144,7 +142,7 @@ if aba_principal == "📦 Estoque":
                     p_id_s = q("SELECT id FROM produtos WHERE nome=?", (n_norm_s,), True)[0][0]
                     q("UPDATE estoque_setores SET quantidade = quantidade - ? WHERE produto=? AND setor='ALMOXARIFADO'", (qtd_s, n_norm_s))
                     
-                    # INSERT ATUALIZADO COM A NOVA COLUNA
+                    
                     q("""INSERT INTO saídas (produto_id, quantidade, usuario, responsavel, observacao, data_hora_saida) 
                          VALUES (?, ?, ?, ?, ?, ?)""", 
                       (p_id_s, qtd_s, st.session_state.usuario, responsavel, f"PARA: {set_dest}", dt_saida_combinada))
@@ -156,7 +154,7 @@ if aba_principal == "📦 Estoque":
             else:
                 st.warning("Preencha todos os campos corretamente.")
 
-    # --- GERENCIAR EMBALAGENS ---
+    # --- GERENCIAR EMBALAGENS 
     if is_admin():
         with st.expander("📦 Gerenciar Tipos de Embalagens", expanded=False):
             c_cad, c_btn = st.columns([4, 1], vertical_alignment="bottom")
@@ -176,7 +174,7 @@ if aba_principal == "📦 Estoque":
                     q("DELETE FROM embalagens WHERE nome = ?", (emb_nome,))
                     st.rerun()
 
-    # --- SALDO ATUAL ---
+    # --- SALDO ATUAL 
     st.divider()
     c_tit, c_atu = st.columns([4, 1], vertical_alignment="bottom")
     c_tit.subheader("📊 Saldo Atual")
@@ -185,7 +183,7 @@ if aba_principal == "📦 Estoque":
         st.cache_data.clear()
         st.rerun()
 
-    # Campo de busca e filtros
+    
     c_bus, c_pos, c_ord = st.columns([2.5, 1, 1.5], vertical_alignment="bottom")
     busca = c_bus.text_input("🔍 Buscar por nome do item", key="f_busca_vfinal")
     f_pos = c_pos.checkbox("Somente positivo", value=False, key="f_pos_check")
@@ -193,7 +191,7 @@ if aba_principal == "📦 Estoque":
     op_ordem = ["Mais recentes primeiro", "Itens com alerta ativo", "Nome A-Z", "Nome Z-A", "Estoque baixo primeiro", "Estoque alto primeiro"]
     ordem = c_ord.selectbox("Ordenar por", op_ordem, index=0, key="f_ord_vfinal")
 
-    # SQL base alterada para WHERE p.ativo = 1
+    
     sql_base = """
     SELECT p.id, p.nome, COALESCE(p.estoque_minimo, 0), 
         COALESCE((SELECT quantidade FROM estoque_setores WHERE produto = p.nome AND setor = 'ALMOXARIFADO'), 0) as qtd,
@@ -218,8 +216,7 @@ if aba_principal == "📦 Estoque":
             "data": u_mov if u_mov else "2000-01-01 00:00:00"
         })
 
-    if ordem == "Mais recentes primeiro":
-        # Ordena pela data de movimentação e usa o ID como critério de desempate (mais novos primeiro)
+    if ordem == "Mais recentes primeiro":        
         lista_f = sorted(lista_f, key=lambda x: (x["data"], x["id"]), reverse=True)
     elif ordem == "Itens com alerta ativo":
         lista_f = sorted(lista_f, key=lambda x: (not x["baixo"], x["qtd"]))
@@ -251,12 +248,12 @@ if aba_principal == "📦 Estoque":
     total_pg = (len(lista_f) // itens_pg) + (1 if len(lista_f) % itens_pg > 0 else 0)
     pg_at = st.number_input(f"Página (de {total_pg})", min_value=1, max_value=max(1, total_pg), value=1, key="nav_est") if total_pg > 1 else 1
 
-    # --- EXIBIÇÃO DOS EXPANDERS ---
+    # --- EXIBIÇÃO DOS EXPANDERS
     for item in lista_f[(pg_at-1)*itens_pg : pg_at*itens_pg]:
-        # Busca a embalagem definida para este produto
+        
         emb_txt = q("SELECT embalagem_padrao FROM produtos WHERE id=?", (item['id'],), True)[0][0]
         
-        # Formata o label conforme solicitado
+        
         label = f"{'⚠️' if item['baixo'] else '📦'} {item['nome']} — {int(item['qtd'])} {emb_txt}"
         if item['baixo']: label += f" (Mínimo: {item['min']})"
 
@@ -280,20 +277,19 @@ if aba_principal == "📦 Estoque":
                 st.success("Salvo!")
                 time.sleep(0.5); st.rerun()
 
-            # --- FUNCIONALIDADE SOFT DELETE (ADMIN) COM CONFIRMAÇÃO ---
+            
             if is_admin():
                 st.divider()
                 c_txt_del, c_chk_del, c_btn_del = st.columns([2, 1, 1], vertical_alignment="center")
                 
-                c_txt_del.write("⚠️ **Excluir Produto?**")
-                # Checkbox serve como trava de segurança
+                c_txt_del.write("⚠️ **Excluir Produto?**")                
                 confirmar = c_chk_del.checkbox("Confirmar", key=f"chk_del_{item['id']}")
                 
                 if confirmar:
                     if c_btn_del.button("Confirmar", key=f"btn_del_{item['id']}", use_container_width=True, type="primary"):
-                        # 1. Executa Soft Delete
+                        
                         q("UPDATE produtos SET ativo = 0 WHERE id = ?", (item['id'],))
-                        # 2. Registra Log
+                        
                         q("INSERT INTO logs_admin (operador, acao, detalhe) VALUES (?,?,?)", 
                           (st.session_state.usuario, "EXCLUSAO PRODUTO", f"O admin excluiu o item: {item['nome']} (ID: {item['id']})"))
                         st.error("Item excluído!")
@@ -330,9 +326,9 @@ if aba_principal == "📦 Estoque":
                     </div>
                 """, unsafe_allow_html=True)
 
-# ==========================================================
+# ===============================================
 # 4. ABA AUDITORIA
-# ==========================================================
+# ===============================================
 elif aba_principal == "📜 Auditoria":
     st.title("📜 Histórico de Movimentações")
     
@@ -349,13 +345,13 @@ elif aba_principal == "📜 Auditoria":
         f_usr = c5.selectbox("Operador do Sistema", ["Todos"] + [u[0] for u in q("SELECT username FROM usuarios", fetch=True)])
         f_tip = c6.selectbox("Tipo de Movimentação", ["Todos", "ENTRADA", "SAÍDA"])
         
-        # AGORA APENAS UM CAMPO: Filtra apenas ativos para o preenchimento rápido
+        
         prods_aud = [p[0] for p in q("SELECT nome FROM produtos WHERE ativo = 1 ORDER BY nome", fetch=True)]
         f_prod = c7.selectbox("Produto", ["Todos"] + prods_aud, key="f_prod_aud_unica")
         
         apenas_com_obs = st.checkbox("Exibir apenas itens com Comentários/Ajustes")
 
-    # SQL Dinâmica atualizada para incluir data_hora_saida
+    
     sql = """
         SELECT * FROM (
             SELECT 
@@ -448,7 +444,7 @@ elif aba_principal == "📜 Auditoria":
                 except:
                     dt_saida_formatada = '-'
             
-            # Busca a embalagem atual do produto para exibir no histórico
+            
             res_emb = q("SELECT embalagem_padrao FROM produtos WHERE id=?", (r_pid,), True)
             emb_aud = res_emb[0][0] if res_emb else "un"
             
@@ -483,7 +479,7 @@ elif aba_principal == "📜 Auditoria":
                 with st.form(f"f_aj_final_{r_tipo}_{r_mid}"):
                     st.markdown(f"### 🔧 Ajuste de Registro: {r_item}")
                     
-                    # Campo para alterar o nome do item
+                    
                     new_nome = st.text_input("Nome do Item", value=r_item).upper()
                     
                     c1, c2 = st.columns(2)
@@ -493,7 +489,7 @@ elif aba_principal == "📜 Auditoria":
                     new_r = st.text_input("Responsável Correto", value=r_resp).upper()
                     motivo = st.text_input("Motivo da Alteração (Obrigatório)", key=f"mot_{r_tipo}_{r_mid}")
                     
-                    # Colunas para os botões de ação
+                    
                     c_conf, c_canc = st.columns(2)
                     
                     # BOTÃO CONFIRMAR
@@ -533,12 +529,12 @@ elif aba_principal == "📜 Auditoria":
                                 q("UPDATE estoque_setores SET quantidade = quantidade + ? WHERE produto=? AND setor='ALMOXARIFADO'", (val, new_nome))
                             
                             st.success("Alterações aplicadas!")
-                            # Limpa os campos fechando o formulário
+                            
                             st.session_state[f"form_ed_{r_tipo}_{r_mid}"] = False
                             time.sleep(0.5)
                             st.rerun()
 
-                    # BOTÃO CANCELAR (Restaurado)
+                    # BOTÃO CANCELAR
                     if c_canc.form_submit_button("Cancelar", use_container_width=True):
                         st.session_state[f"form_ed_{r_tipo}_{r_mid}"] = False
                         st.rerun()

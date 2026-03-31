@@ -1,16 +1,16 @@
-# 📦 Controle de Estoque - Python
+# Controle de Estoque - Python
 
 Sistema desenvolvido em **Python** utilizando a biblioteca **Streamlit** para interface e **SQLite** para persistência de dados. O projeto foi estruturado para gerenciar entradas e saídas de estoque por setores, com foco em auditoria e rastreabilidade.
 
-## 🚀 Funcionalidades Principais
+## Funcionalidades Principais
 
-- **📦 Gestão de Estoque:** Entradas por unidade ou embalagem (caixa, pacote, etc.) e saídas com registro de colaborador responsável.
-- **📜 Auditoria Completa:** Histórico detalhado de movimentações com filtros por data, setor, operador e produto.
-- **🛡️ Painel Administrativo:** Controle de acesso (Login), gerenciamento de tipos de embalagens, soft delete de produtos e logs de ajustes.
-- **📊 Exportação de Dados:** Geração de relatórios em Excel (.xlsx) tanto para o saldo atual quanto para o histórico de auditoria.
+- **Gestão de Estoque:** Entradas por unidade ou embalagem (caixa, pacote, etc.) e saídas com registro de colaborador responsável.
+- **Auditoria Completa:** Histórico detalhado de movimentações com filtros por data, setor, operador e produto.
+- **Painel Administrativo:** Controle de acesso (Login), gerenciamento de tipos de embalagens, soft delete de produtos e logs de ajustes.
+- **Exportação de Dados:** Geração de relatórios em Excel (.xlsx) tanto para o saldo atual quanto para o histórico de auditoria.
 - **⚡ Automação:** Scripts (.bat) inclusos para inicialização rápida e rotinas de backup do banco de dados.
 
-## 🛠️ Tecnologias Utilizadas
+## Tecnologias Utilizadas
 
 - **Linguagem:** Python 3.10+
 - **Interface:** Streamlit
@@ -18,7 +18,7 @@ Sistema desenvolvido em **Python** utilizando a biblioteca **Streamlit** para in
 - **Manipulação de Dados:** Pandas
 - **Versionamento:** Git
 
-## 📂 Estrutura de Pastas
+## Estrutura de Pastas
 
 ```text
 PROJETO_ESTOQUE/
@@ -32,7 +32,7 @@ PROJETO_ESTOQUE/
 ├── .gitignore          # Configurações de versionamento
 └── requirements.txt    # Dependências do projeto
 
-⚙️ Como Executar o Projeto
+Como Executar o Projeto
 Clonar o repositório:
 
 # Clonar o repositório:
@@ -54,7 +54,7 @@ python utils/setup_estoque.py
 Rodar a aplicação:
 streamlit run app.py
 
-🧪 Automação de Testes (QA)
+Automação de Testes (QA)
 O sistema utiliza Cypress para validar a integridade dos dados e fluxos de usuário. Os testes garantem que a normalização de strings e as regras de saldo negativo sejam respeitadas.
 
 Executar testes em interface gráfica:
@@ -63,7 +63,7 @@ npx cypress open
 Executar testes em modo headless (terminal):
 npx cypress run
 
-🎯 Foco em Qualidade (QA)
+Foco em Qualidade (QA)
 Rastreabilidade: Cada ação gera um rastro único no banco de dados para auditoria.
 
 Integridade de Ambiente: Uso de caminhos absolutos (os.path) para garantir que o sistema e a automação compartilhem o mesmo banco de dados.

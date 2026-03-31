@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS produtos (
 )
 """)
 
-# Estoque por Setores (Centralizado no ALMOXARIFADO)
+
 cur.execute("""
 CREATE TABLE IF NOT EXISTS estoque_setores (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -72,7 +72,7 @@ CREATE TABLE IF NOT EXISTS saídas (
 )
 """)
 
-# NOVA TABELA: logs_admin para rastrear edições do lápis
+
 cur.execute("""
 CREATE TABLE IF NOT EXISTS logs_admin (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -87,18 +87,18 @@ CREATE TABLE IF NOT EXISTS logs_admin (
 # MIGRAÇÕES E SEGURANÇA
 # =========================
 
-# Garante que a coluna 'responsavel' exista para rastreabilidade
+
 try:
     cur.execute("ALTER TABLE saídas ADD COLUMN responsavel TEXT")
     print("📢 Coluna 'responsavel' garantida.")
 except: pass
 
-# Garante coluna de tipo para entradas antigas
+
 try:
     cur.execute("ALTER TABLE entradas_unidade ADD COLUMN tipo_movimentacao TEXT DEFAULT 'ENTRADA'")
 except: pass
 
-# Cria usuário admin padrão para acesso às funções de edição
+
 cur.execute("INSERT OR IGNORE INTO usuarios (username, senha) VALUES (?,?)", ("admin", "123"))
 
 conn.commit()
